@@ -5,15 +5,15 @@
     <vs-input
         v-validate="'required|min:3'"
         data-vv-validate-on="blur"
-        name="username"
+        name="email"
         icon-no-border
         icon="icon icon-user"
         icon-pack="feather"
-        v-model="username"
-        placeholder="username"
+        v-model="email"
+        placeholder="Email"
         color="#28a745"
         class="w-full"/>
-    <span class="text-info text-sm">{{ errors.first('username') }}</span>
+    <span class="text-info text-sm">{{ errors.first('email') }}</span>
 
     <vs-input
         data-vv-validate-on="blur"
@@ -24,7 +24,7 @@
         icon="icon icon-lock"
         icon-pack="feather"
         v-model="password"
-        placeholder="password"
+        placeholder="Password"
         color="#28a745"
         class="w-full mt-6" />
     <span class="text-info text-sm">{{ errors.first('password') }}</span>
@@ -64,6 +64,9 @@ import commonHelper from "@/infrastructures/common-helpers"
 import Loading from 'vue-loading-overlay';
 // Import stylesheet
 import 'vue-loading-overlay/dist/vue-loading.css';
+import {BACKEND_BASE_URL, ERROR_COMMON} from "../../../configs/environment";
+const axios = require('axios').default;
+
 export default {
   components: {Loading},
   comments: {
@@ -72,63 +75,52 @@ export default {
   },
   data() {
     return {
-      username: '',
+      email: '',
       password: '',
       isLoading: false,
       fullPage: true
     }
   },
-  computed: {
-    validateForm() {
-      return !this.errors.any() && this.username != '' && this.password != '';
-    },
-  },
+  computed: {},
   created() {
     this.checkLogin();
   },
   methods: {
     checkLogin() {
-      Service.login().then(res => {
-        if (res.data.success) {
-          commonHelper.showMessage(res.data.message, 'success')
-          if (res.data.data.group_id === 1) return window.location.href = '/adm'
-          if (res.data.data.group_id === 3) return window.location.href = '/adm/student'
-          if (res.data.data.group_id === 2) return window.location.href = '/adm/marketing-coordinator'
-          if (res.data.data.group_id === 4) return window.location.href = '/adm/marketing-manager'
-          if (res.data.data.group_id === 5) return window.location.href = '/adm/guest'
-          return window.location.href = '/adm'
-        }
-        commonHelper.showMessage(res.data.message || 'There something error', 'warning')
-      }).catch(() => {
-        commonHelper.showMessage('There something error', 'warning')
+      const accessToken = localStorage.getItem('access_token');
+      axios.get(`${BACKEND_BASE_URL}/user/info`, {
+        headers: { Authorization: `Bearer ${accessToken}`}
       })
+        .then(() => {
+          return window.location.href = '/adm'
+        })
+        .catch((error) => {
+          if (error.response.status === 401) return commonHelper.showMessage('Vui Lòng Đăng Nhập', 'warning')
+          return commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
     },
-    onCancel() {
-      console.log('User cancelled the loader.')
-    },
+    onCancel() {},
     login() {
       this.isLoading = true;
       let dataSend = {
-        username: this.username,
+        username: this.email,
         password: this.password
       }
-      Service.login(dataSend).then(res => {
-        if (res.data.success) {
-          commonHelper.showMessage(res.data.message, 'success')
-          localStorage.setItem('infoUser', JSON.stringify(res.data.data))
-          if (res.data.data.group_id === 1) return window.location.href = '/adm'
-          if (res.data.data.group_id === 4) return window.location.href = '/adm/marketing-manager'
-          if (res.data.data.group_id === 2) return window.location.href = '/adm/marketing-coordinator'
-          if (res.data.data.group_id === 3) return window.location.href = '/adm/student'
-          if (res.data.data.group_id === 5) return window.location.href = '/adm/guest'
-          return window.location.href = '/adm'
-        }
-        commonHelper.showMessage(res.data.message || 'There something error', 'warning')
-      }).catch(() => {
-        commonHelper.showMessage('There something error', 'warning')
-      }).finally(() => {
-        this.isLoading = false;
-      })
+      axios.post(`${BACKEND_BASE_URL}/auth/login`, dataSend)
+        .then(res => {
+          if (res.data.access_token) {
+            localStorage.setItem('access_token', res.data.access_token);
+            return window.location.href = '/adm'
+          }
+          return commonHelper.showMessage('Sai Tài Khoản', 'warning')
+        })
+        .catch((error) => {
+          if (error.response.status === 401) return commonHelper.showMessage('Sai Tài Khoản', 'warning')
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
+        .finally(() => {
+          this.isLoading = false;
+        })
     }
   }
 }

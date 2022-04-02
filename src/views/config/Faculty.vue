@@ -2,29 +2,26 @@
 
   <div id="page-user-list">
     <header-fptschool></header-fptschool>
-    <b-row>
+    <b-row class="ml-3">
       <b-col>
-        <b-input :placeholder="`Faculty name`" v-model="facultyNameSearch"></b-input>
+        <b-form-select v-model="roleSearch" :options="listGroup"></b-form-select>
       </b-col>
       <b-col>
-        <b-btn class="mr-3" variant="outline-info" @click="getListFaculty()">Search</b-btn>
-        <b-btn variant="outline-success" v-b-modal.modal-1>Add Faculty</b-btn>
+        <b-input :placeholder="`Email`" type="email" v-model="emailSearch"></b-input>
+      </b-col>
+      <b-col>
+        <b-input :placeholder="`Full name`" v-model="fullNameSearch"></b-input>
+      </b-col>
+      <b-col>
+        <b-input :placeholder="`Phone Number`" v-model="phoneNumberSearch"></b-input>
+      </b-col>
+      <b-col>
+        <b-btn class="mr-3" variant="outline-info" @click="getUser()">Search</b-btn>
       </b-col>
     </b-row>
-
-    <b-modal centered id="modal-1" title="Add New Faculty" @ok="addFaculty()">
-      <b-row>
-        <b-input class="ml-3 mr-3 mb-3" v-model="facultyNameAdd" :placeholder="`Faculty name`"></b-input>
-      </b-row>
-      <b-row>
-        <b-input class="ml-3 mr-3 mb-3" v-model="facultyDescriptionAdd" :placeholder="`Faculty description`"></b-input>
-      </b-row>
-      <b-form-select v-model="facultyConfigClosure" :options="optionsClosureConfig"></b-form-select>
-    </b-modal>
-
     <br>
     <br>
-    <b-row>
+    <b-row class="ml-3">
       <b-col>
         <div class="w-50">
           <b-form-input
@@ -37,23 +34,26 @@
         </div>
       </b-col>
     </b-row>
-    <b-row>
+    <b-row class="ml-3">
       <b-table
         :filter="filter"
         class="ml-5 mr-5"
         hover
-        striped
         responsive
-        :fields="fieldsDataFaculty"
-        :items="dataFaculty"
+        striped
+        :fields="fieldsDataUsers"
+        :items="dataUsers"
         :per-page="perPage"
         :current-page="currentPage"
       >
         <template v-slot:cell(manage)="row">
-          <b-btn class="mr-3" variant="outline-warning" v-b-modal.modal-1 @click="editFaculty(row.item)">
-            <feather-icon icon="Edit3Icon" svgClasses="h-4 w-4"/>
+          <b-btn class="mr-3" variant="outline-success" @click="modifyUser('1', row.item.id)">
+            <feather-icon icon="UnlockIcon" svgClasses="h-4 w-4"/>
           </b-btn>
-          <b-btn variant="outline-danger" @click="deleteFaculty(row.item.faculty_id)">
+          <b-btn class="mr-3" variant="outline-warning" @click="modifyUser('2', row.item.id)">
+            <feather-icon icon="LockIcon" svgClasses="h-4 w-4"/>
+          </b-btn>
+          <b-btn variant="outline-danger" @click="modifyUser('3', row.item.id)">
             <feather-icon icon="TrashIcon" svgClasses="h-4 w-4"/>
           </b-btn>
         </template>
@@ -76,150 +76,138 @@
         </b-pagination>
       </div>
     </b-row>
+
+    <b-modal id="AddFaculty" title="Add Faculty" size="md" :hide-footer="true" centered>
+      <faculty-select
+        :user-id="userIdAddFaculty"
+      />
+    </b-modal>
   </div>
 
 </template>
 
 <script>
 import '@/assets/scss/vuexy/extraComponents/agGridStyleOverride.scss'
-import Service from '@/domain/services/api'
-import commonHelper from '@/infrastructures/common-helpers'
+import Multiselect from 'vue-multiselect'
+import commonHelper from "@/infrastructures/common-helpers"
+import FacultySelect from "@/views/components/component/FacultySelect";
 import HeaderFptschool from "@/views/Header";
+import {BACKEND_BASE_URL, ERROR_COMMON, SUCCESS_COMMON} from "../../configs/environment";
+const axios = require('axios').default;
 
 export default {
   components: {
-    HeaderFptschool
+    HeaderFptschool,
+    Multiselect,
+    FacultySelect
   },
   data() {
     return {
       perPage: 9,
       currentPage: 1,
-      fieldsDataFaculty: [
-        {key: 'faculty_name', label: 'Faculty name', sortable: true},
-        {key: 'faculty_description', label: 'Faculty description', sortable: true},
-        {key: 'first_closure_DATE', label: 'Start submission date', sortable: true},
-        {key: 'final_closure_DATE', label: 'Deadline submission date', sortable: true},
-        {key: 'closure_name', label: 'Closure name', sortable: true},
-        {key: 'manage', label: 'Action', sortable: true}
+      fieldsDataUsers: [
+        {key: 'id', label: 'Id', sortable: true},
+        {key: 'email', label: 'Email', sortable: true},
+        {key: 'role', label: 'Chức Năng', sortable: true},
+        {key: 'full_name', label: 'Họ Tên', sortable: true},
+        {key: 'address', label: 'Địa Chỉ', sortable: true},
+        {key: 'status', label: 'Trạng Thái', sortable: true},
+        {key: 'manage', label: 'Manage'}
       ],
-      dataFaculty: [],
+      dataUsers: [],
       filter: null,
 
-      facultyNameSearch: '',
+      roleSearch: null,
+      fullNameSearch: '',
+      phoneNumberSearch: '',
+      emailSearch: '',
 
-      optionsClosureConfig: [],
-
-      facultyNameAdd: null,
-      facultyStart: null,
-      facultyConfigClosure: null,
-      facultyDescriptionAdd: null,
-      facultyId: null
+      optionsRole: [
+        { value: null, text: 'Please select role' },
+        { value: 1, text: 'Admin' },
+        { value: 2, text: 'Marketing Coordinator' },
+        { value: 3, text: 'Student' },
+        { value: 4, text: 'Marketing Manager' },
+        { value: 5, text: 'Guest' },
+      ],
+      userIdAddFaculty: null,
+      listGroup: [],
     }
   },
   watch: {
   },
   computed: {
     rows() {
-      return this.dataFaculty.length
+      return this.dataUsers.length
     }
 
   },
   methods: {
-    getListClosureConfig () {
-      this.dataFaculty = []
-      Service.getClosure().then(res => {
-        if (res.data.success) {
-          this.optionsClosureConfig = res.data.data.map(e => {
+    getListGroup () {
+      axios.get(`${BACKEND_BASE_URL}/user/list-group`)
+        .then((res) => {
+          this.listGroup = Object.values(res.data.data).map(e => {
             return {
-              value: e.id,
-              text: 'Closure ' + e.name + ' (' + e.first_closure_DATE + '-' + e.final_closure_DATE + ')'
+              value: e,
+              text: e
             }
           })
-          this.optionsClosureConfig.push({
+          this.listGroup.push({
             value: null,
-            text: 'Please select closure'
+            text: 'Select role...'
           })
-          return commonHelper.showMessage(res.data.message, 'success')
-        }
-        commonHelper.showMessage(res.data.message, 'warning')
-      }).catch(() => {
-        commonHelper.showMessage('There something error. Please try again', 'warning')
-      })
-    },
-
-    getListFaculty () {
-      Service.getListActive({faculty_name: this.facultyNameSearch}).then(res => {
-        if (res.data.success) {
-          this.dataFaculty = res.data.data
-          return commonHelper.showMessage(res.data.message, 'success')
-        }
-        commonHelper.showMessage(res.data.message, 'warning')
-      }).catch(() => {
-        commonHelper.showMessage('There something error. Please try again', 'warning')
-      })
-    },
-
-    addFaculty () {
-      let dataSend = {
-        name: this.facultyNameAdd,
-        description: this.facultyDescriptionAdd,
-        closure_config_id: this.facultyConfigClosure,
-      }
-
-      if (this.facultyId !== null) {
-        dataSend = {
-          'id': this.facultyId,
-          'name': this.facultyNameAdd,
-          'description': this.facultyDescriptionAdd,
-          'closure_config_id': this.facultyConfigClosure
-        }
-
-        Service.updateFaculty(dataSend).then(res => {
-          if (res.data.success) {
-            this.getListFaculty()
-            return commonHelper.showMessage(res.data.message, 'success')
-          }
-          commonHelper.showMessage(res.data.message, 'warning')
-        }).catch(() => {
-          commonHelper.showMessage('There something error. Please try again', 'warning')
+          return commonHelper.showMessage(SUCCESS_COMMON, 'success')
         })
-      } else {
-        Service.createFaculty(dataSend).then(res => {
-          if (res.data.success) {
-            this.getListFaculty()
-            return commonHelper.showMessage(res.data.message, 'success')
-          }
-          commonHelper.showMessage(res.data.message, 'warning')
-        }).catch(() => {
-          commonHelper.showMessage('There something error. Please try again', 'warning')
+        .catch(() => {
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
         })
+    },
+    addFaculty (dataUser) {
+      this.userIdAddFaculty = dataUser.id
+      this.$bvModal.show('AddFaculty')
+    },
+    getUser () {
+      let data = {
+        full_name: this.fullNameSearch,
+        phone_number: this.phoneNumberSearch,
+        email: this.emailSearch,
+        group_id: this.roleSearch
       }
+      this.dataUsers = []
+      axios.get(`${BACKEND_BASE_URL}/user/user-list`, {'params': data})
+        .then(res => {
+          this.dataUsers = res.data.data
+          return commonHelper.showMessage(SUCCESS_COMMON, 'success')
+        })
+        .catch(() => {
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
     },
 
-    editFaculty (data) {
-      this.facultyNameAdd = data.faculty_name
-      this.facultyDescriptionAdd = data.faculty_description
-      this.facultyConfigClosure = data.closure_id
-      this.facultyId = data.faculty_id
-    },
-    deleteFaculty (id) {
-      if (!confirm('Are you sure to delete this faculty?')) return 1;
-      Service.deleteFaculty({id: id}).then(res => {
-        if (res.data.success) {
-          this.getListFaculty()
-          return commonHelper.showMessage(res.data.message, 'success')
-        }
-        commonHelper.showMessage(res.data.message, 'warning')
-      }).catch(() => {
-        commonHelper.showMessage('There something error. Please try again', 'warning')
-      })
+    modifyUser (modifyType, idUser) {
+      if (!confirm('Bạn có chắc chắn thực hiện hành động này?')) return 1
+      let param = {
+        modifyType,
+        idUser
+      }
+      axios.get(`${BACKEND_BASE_URL}/user/modify-user`, { params: param })
+        .then(res => {
+          if (res.data.data) {
+            this.getUser()
+            return commonHelper.showMessage('Thao tác thành công', 'success')
+          }
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
+        .catch(() => {
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
     }
   },
   mounted() {
   },
   created() {
-    this.getListClosureConfig()
-    this.getListFaculty()
+    this.getUser()
+    this.getListGroup()
   }
 }
 

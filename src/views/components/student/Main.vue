@@ -22,11 +22,6 @@
                 <img v-b-toggle.collapse-1 style="width: 50px; height: 50px; border-radius: 50%" :src="'/user/getAvatar'">
               </b-dropdown-item>
               <b-dropdown-item v-b-modal.profileEdit>Profile</b-dropdown-item>
-              <b-dropdown-item>
-                <b-btn variant="outline-success" @click="uploadAvatar()">
-                  Upload Avatar
-                </b-btn>
-              </b-dropdown-item>
               <b-dropdown-item v-b-modal.changePass>
                   Change Password
               </b-dropdown-item>
@@ -204,7 +199,6 @@ import Service from "@/domain/services/api";
 import commonHelper from '@/infrastructures/common-helpers'
 import ProfileEdit from "@/views/components/student/ProfileEdit";
 import ChangePass from "@/views/components/student/ChangePassword";
-import UploadAvatar from "@/views/components/student/UploadAvatar";
 import Submission from "@/views/components/student/Submission";
 import UploadFile from "@/views/components/student/Submission";
 import Comment from "@/views/components/student/Comment"
@@ -256,7 +250,6 @@ export default {
     WebViewer,
     UploadFile,
     ChangePass,
-    UploadAvatar,
     ProfileEdit,
     Submission,
     Comment
@@ -324,10 +317,6 @@ export default {
     comment (data) {
       this.infoFileUpload = data
       this.$bvModal.show('comment')
-    },
-    uploadAvatar () {
-      this.isUploadAvatar = false
-      this.isUploadAvatar = true
     },
     uploadAvatarSuccess (urlImg) {
       this.imgDataUrl = urlImg

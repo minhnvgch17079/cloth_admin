@@ -1,290 +1,227 @@
 <template>
-  <div class="container-fluid mt-3">
+
+  <div id="page-user-list">
     <header-fptschool></header-fptschool>
-    <b-row>
-      <b-col md="6">
-        <div>
-          <b-badge variant="primary" class="d-block mb-1"><h3>Total Closure Config {{this.totalClosureConfig}}</h3></b-badge>
-          <b-badge variant="info" class="d-block mb-1"><h3>Total submission {{this.totalFacultySubmission}}</h3></b-badge>
-          <b-form-select :options="closure" v-model="closureSelect" class="mb-1"></b-form-select>
-          <b-btn variant="outline-primary" @click="changeFacultyColor">Change Color</b-btn>
-          <div class="d-block justify-content-center">
-            <ECharts :options="faculty"/>
-          </div>
-        </div>
+    <b-row class="ml-3">
+      <b-col>
+        <b-form-select v-model="roleSearch" :options="listGroup"></b-form-select>
       </b-col>
-      <b-col md="6">
-        <b-badge variant="primary" class="d-block mb-1"><h3>Total Group User {{this.totalGroup}}</h3></b-badge>
-        <b-badge variant="info" class="d-block mb-1"><h3>Total User Found {{this.totalUser}}</h3></b-badge>
-        <b-form-select :options="groupOption" v-model="groupSelect"></b-form-select>
-        <b-btn variant="outline-primary" @click="changeUserColor">Change Color</b-btn>
-        <div class="d-block justify-content-center">
-          <ECharts :options="user"/>
+      <b-col>
+        <b-input :placeholder="`Email`" type="email" v-model="emailSearch"></b-input>
+      </b-col>
+      <b-col>
+        <b-input :placeholder="`Full name`" v-model="fullNameSearch"></b-input>
+      </b-col>
+      <b-col>
+        <b-input :placeholder="`Phone Number`" v-model="phoneNumberSearch"></b-input>
+      </b-col>
+      <b-col>
+        <b-btn class="mr-3" variant="outline-info" @click="getUser()">Search</b-btn>
+      </b-col>
+    </b-row>
+    <br>
+    <br>
+    <b-row class="ml-3">
+      <b-col>
+        <div class="w-50">
+          <b-form-input
+            class="mb-5"
+            id="filter-input"
+            v-model="filter"
+            type="search"
+            placeholder="Type to Search"
+          ></b-form-input>
         </div>
       </b-col>
     </b-row>
+    <b-row class="ml-3">
+      <b-table
+        :filter="filter"
+        class="ml-5 mr-5"
+        hover
+        responsive
+        striped
+        :fields="fieldsDataUsers"
+        :items="dataUsers"
+        :per-page="perPage"
+        :current-page="currentPage"
+      >
+        <template v-slot:cell(manage)="row">
+          <b-btn class="mr-3" variant="outline-success" @click="modifyUser('1', row.item.id)">
+            <feather-icon icon="UnlockIcon" svgClasses="h-4 w-4"/>
+          </b-btn>
+          <b-btn class="mr-3" variant="outline-warning" @click="modifyUser('2', row.item.id)">
+            <feather-icon icon="LockIcon" svgClasses="h-4 w-4"/>
+          </b-btn>
+          <b-btn variant="outline-danger" @click="modifyUser('3', row.item.id)">
+            <feather-icon icon="TrashIcon" svgClasses="h-4 w-4"/>
+          </b-btn>
+        </template>
+      </b-table>
+    </b-row>
+    <br>
+    <b-row>
+      <div class="d-flex justify-content-center w-100">
+        <b-pagination
+          align="center"
+          v-model="currentPage"
+          :total-rows="rows"
+          :per-page="perPage"
+          aria-controls="my-table"
+        >
+          <template #first-text><span class="text-success">First</span></template>
+          <template #prev-text><span class="text-danger">Prev</span></template>
+          <template #next-text><span class="text-warning">Next</span></template>
+          <template #last-text><span class="text-info">Last</span></template>
+        </b-pagination>
+      </div>
+    </b-row>
 
-    <hr style="background-color: black">
-
-    <div class="d-block text-center">
-      <h3>© Copyright 2021 By Group 5. All rights reserved.</h3>
-    </div>
-
-    <b-modal id="profileEdit" title="Profile" size="md" :hide-footer="true">
-      <ProfileEdit/>
+    <b-modal id="AddFaculty" title="Add Faculty" size="md" :hide-footer="true" centered>
+      <faculty-select
+        :user-id="userIdAddFaculty"
+      />
     </b-modal>
-
-    <b-modal id="changePass" title="Change pass" size="md" :hide-footer="true">
-      <change-pass/>
-    </b-modal>
-
-    <upload-avatar
-      :show="isUploadAvatar"
-      @uploadAvatarSuccess="uploadAvatarSuccess"
-    />
-
   </div>
+
 </template>
 
-
-<style>
-.center {
-  margin: 5px auto;
-  font-weight: bold;
-  width: 17%;
-  padding: 10px;
-  color: white;
-}
-</style>
-
 <script>
-import ECharts from 'vue-echarts/components/ECharts.vue'
-import 'echarts/lib/chart/pie'
-import 'echarts/lib/component/tooltip'
-import 'echarts/lib/component/legend'
-import Service from '@/domain/services/api'
-import commonHelper from '@/infrastructures/common-helpers'
-import Logo from "@/layouts/components/Logo";
-import ProfileEdit from "@/views/components/student/ProfileEdit";
-import ChangePass from "@/views/components/student/ChangePassword";
-import UploadAvatar from "@/views/components/student/UploadAvatar";
+import '@/assets/scss/vuexy/extraComponents/agGridStyleOverride.scss'
+import Multiselect from 'vue-multiselect'
+import commonHelper from "@/infrastructures/common-helpers"
+import FacultySelect from "@/views/components/component/FacultySelect";
 import HeaderFptschool from "@/views/Header";
+import { BACKEND_BASE_URL, ERROR_COMMON, SUCCESS_COMMON } from "@/configs/environment";
+const axios = require('axios').default;
 
 export default {
-  data() {
-    return {
-      isUploadAvatar: false,
-      faculty: {
-        title: {
-          text: 'Faculty Report',
-          subtext: 'Faculty Report',
-          left: 'center'
-        },
-        color: [],
-        tooltip: {
-          trigger: 'item'
-        },
-        legend: {
-          orient: 'vertical',
-          left: 'left',
-        },
-        series: [
-          {
-            name: 'Faculty Report',
-            type: 'pie',
-            radius: '50%',
-            data: [],
-            emphasis: {
-              itemStyle: {
-                shadowBlur: 10,
-                shadowOffsetX: 0,
-                shadowColor: 'rgba(0, 0, 0, 0.5)'
-              }
-            }
-          }
-        ]
-      },
-      closure: [],
-      closureSelect: null,
-      totalFacultySubmission: 0,
-      totalClosureConfig: 0,
-      user: {
-        title: {
-          text: 'User Report',
-          subtext: 'User Report',
-          left: 'center'
-        },
-        color: [],
-        tooltip: {
-          trigger: 'item'
-        },
-        legend: {
-          orient: 'vertical',
-          left: 'left',
-        },
-        series: [
-          {
-            name: 'User Report',
-            type: 'pie',
-            radius: '50%',
-            data: [],
-            emphasis: {
-              itemStyle: {
-                shadowBlur: 10,
-                shadowOffsetX: 0,
-                shadowColor: 'rgba(0, 0, 0, 0.5)'
-              }
-            }
-          }
-        ]
-      },
-      totalUser: 0,
-      totalGroup: 0,
-      groupOption: [],
-      groupSelect: null
-    }
-  },
   components: {
     HeaderFptschool,
-    UploadAvatar,
-    ChangePass,
-    ProfileEdit,
-    Logo,
-    ECharts,
+    Multiselect,
+    FacultySelect
   },
-  created() {
-    this.getReportFaculty()
-    this.getClosureConfig()
-    this.getReportUser()
-    this.getListGroup()
+  data() {
+    return {
+      perPage: 9,
+      currentPage: 1,
+      fieldsDataUsers: [
+        {key: 'id', label: 'Id', sortable: true},
+        {key: 'email', label: 'Email', sortable: true},
+        {key: 'role', label: 'Chức Năng', sortable: true},
+        {key: 'full_name', label: 'Họ Tên', sortable: true},
+        {key: 'address', label: 'Địa Chỉ', sortable: true},
+        {key: 'status', label: 'Trạng Thái', sortable: true},
+        {key: 'manage', label: 'Manage'}
+      ],
+      dataUsers: [],
+      filter: null,
+
+      roleSearch: null,
+      fullNameSearch: '',
+      phoneNumberSearch: '',
+      emailSearch: '',
+
+      optionsRole: [
+        { value: null, text: 'Please select role' },
+        { value: 1, text: 'Admin' },
+        { value: 2, text: 'Marketing Coordinator' },
+        { value: 3, text: 'Student' },
+        { value: 4, text: 'Marketing Manager' },
+        { value: 5, text: 'Guest' },
+      ],
+      userIdAddFaculty: null,
+      listGroup: [],
+    }
   },
   watch: {
-    closureSelect () {
-      this.getReportFaculty()
-    },
-    groupSelect () {
-      this.getReportUser()
+  },
+  computed: {
+    rows() {
+      return this.dataUsers.length
     }
+
   },
   methods: {
-    logout() {
-      Service.logout().then(() => {
-        commonHelper.showMessage('Logout Success', 'success')
-        localStorage.removeItem("infoUser");
-        window.location.href = '/adm/login'
-      })
-    },
-    uploadAvatar () {
-      this.isUploadAvatar = false
-      this.isUploadAvatar = true
-    },
-    uploadAvatarSuccess (urlImg) {
-      this.imgDataUrl = urlImg
-      commonHelper.showMessage('Upload avatar success', 'success')
-    },
     getListGroup () {
-      Service.getAllGroup().then(res => {
-        if (res.data.success) {
-          this.groupOption = Object.values(res.data.data).map(e => {
+      axios.get(`${BACKEND_BASE_URL}/user/list-group`)
+        .then((res) => {
+          this.listGroup = Object.values(res.data.data).map(e => {
             return {
-              value: e.id,
-              text: e.name
+              value: e,
+              text: e
             }
           })
-          this.groupOption.push({
+          this.listGroup.push({
             value: null,
-            text: 'Select group...'
+            text: 'Select role...'
           })
-          return commonHelper.showMessage(res.data.message, 'success')
-        }
-        commonHelper.showMessage(res.data.message, 'warning')
-      }).catch(() => {
-        commonHelper.showMessage('There something error, please try again', 'warning')
-      })
+          return commonHelper.showMessage(SUCCESS_COMMON, 'success')
+        })
+        .catch(() => {
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
     },
-    changeFacultyColor () {
-      let numColor = this.faculty.color.length
-      this.faculty.color = []
-      for (let i = 0; i < numColor; i++) {
-        this.faculty.color.push(commonHelper.randomColor())
+    addFaculty (dataUser) {
+      this.userIdAddFaculty = dataUser.id
+      this.$bvModal.show('AddFaculty')
+    },
+    getUser () {
+      let data = {
+        full_name: this.fullNameSearch,
+        phone_number: this.phoneNumberSearch,
+        email: this.emailSearch,
+        group_id: this.roleSearch
       }
+      this.dataUsers = []
+      axios.get(`${BACKEND_BASE_URL}/user/user-list`, {'params': data})
+        .then(res => {
+          this.dataUsers = res.data.data
+          return commonHelper.showMessage(SUCCESS_COMMON, 'success')
+        })
+        .catch(() => {
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
     },
-    changeUserColor () {
-      let numColor = this.user.color.length
-      this.user.color = []
-      for (let i = 0; i < numColor; i++) {
-        this.user.color.push(commonHelper.randomColor())
+
+    modifyUser (modifyType, idUser) {
+      if (!confirm('Bạn có chắc chắn thực hiện hành động này?')) return 1
+      let param = {
+        modifyType,
+        idUser
       }
-    },
-    getClosureConfig () {
-      this.totalClosureConfig = 0
-      Service.getClosure().then(res => {
-        if (res.data.success) {
-          this.closure = Object.values(res.data.data).map(e => {
-            this.totalClosureConfig++
-            return {
-              value: e.id,
-              text: e.name
-            }
-          })
-          this.closure.push({
-            value: null,
-            text: 'Select closure...'
-          })
-          return commonHelper.showMessage(res.data.message, 'success')
-        }
-        commonHelper.showMessage(res.data.message, 'warning')
-      }).catch(() => {
-        commonHelper.showMessage('There something error, please try again', 'warning')
-      })
-    },
-    getReportFaculty () {
-      this.faculty.series[0].data = []
-      this.faculty.color = []
-      this.totalFacultySubmission = 0
-      Service.FacultyReport({closure_id: this.closureSelect}).then(res => {
-        if (res.data.success) {
-          for (let facultyName in res.data.data.detail) {
-            this.totalFacultySubmission += res.data.data.detail[facultyName]
-            this.faculty.color.push(commonHelper.randomColor())
-            this.faculty.series[0].data.push({
-              value: res.data.data.detail[facultyName],
-              name: facultyName
-            })
+      axios.get(`${BACKEND_BASE_URL}/user/modify-user`, { params: param })
+        .then(res => {
+          if (res.data.data) {
+            this.getUser()
+            return commonHelper.showMessage('Thao tác thành công', 'success')
           }
-          return commonHelper.showMessage(res.data.message, 'success');
-        }
-        commonHelper.showMessage(res.data.message, 'warning')
-      }).catch(() => {
-        commonHelper.showMessage('There something error, please try again', 'warning')
-      })
-    },
-    getReportUser () {
-      this.user.series[0].data = []
-      this.user.color = []
-      this.totalUser = 0;
-      this.totalGroup = 0;
-      Service.userReport({group_id: this.groupSelect}).then(res => {
-        if (res.data.success) {
-          for (let userGroup in res.data.data.detail) {
-            this.totalGroup++
-            this.totalUser += res.data.data.detail[userGroup]
-            this.user.color.push(commonHelper.randomColor())
-            this.user.series[0].data.push({
-              value: res.data.data.detail[userGroup],
-              name: userGroup
-            })
-          }
-          return commonHelper.showMessage(res.data.message, 'success');
-        }
-        commonHelper.showMessage(res.data.message, 'warning')
-      }).catch(() => {
-        commonHelper.showMessage('There something error, please try again', 'warning')
-      })
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
+        .catch(() => {
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
     }
+  },
+  mounted() {
+  },
+  created() {
+    this.getUser()
+    this.getListGroup()
   }
 }
+
 </script>
 
 <style lang="scss">
+#page-user-list {
+  .user-list-filters {
+    .vs__actions {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-58%);
+    }
+  }
+}
 </style>

@@ -9,9 +9,7 @@
         <b-col>
           <b-collapse id="collapse-1" class="mt-2">
             <b-btn class="mr-3 mb-1" style="width: 150px" variant="warning" v-b-modal.profileEdit>Profile</b-btn>
-            <b-btn class="mr-3 mb-1" style="width: 150px" variant="success" @click="uploadAvatar()">
               Upload Avatar
-            </b-btn>
             <b-btn style="width: 150px" class="mr-3 mb-1" variant="primary" v-b-modal.changePass>
               Change Password
             </b-btn>
@@ -95,7 +93,6 @@ import ProfileEdit from "@/views/components/student/ProfileEdit";
 import ChangePass from "@/views/components/student/ChangePassword";
 import WebViewer from "@/views/file/WebViewer";
 import Logo from "@/layouts/components/Logo";
-import UploadAvatar from "@/views/components/student/UploadAvatar";
 import ECharts from 'vue-echarts/components/ECharts.vue'
 import 'echarts/lib/chart/pie'
 import 'echarts/lib/component/tooltip'
@@ -127,7 +124,6 @@ export default {
   },
   components: {
     ECharts,
-    UploadAvatar,
     Logo,
     WebViewer,
     ChangePass,
@@ -140,10 +136,6 @@ export default {
     this.infoStudent = JSON.parse(localStorage.getItem('infoUser'))
   },
   methods: {
-    uploadAvatar () {
-      this.isUploadAvatar = false
-      this.isUploadAvatar = true
-    },
     selectedFile (idFile) {
       if (this.listFileSelected[idFile] !== null) this.listFileSelected[idFile] = null
       else this.listFileSelected[idFile] = idFile

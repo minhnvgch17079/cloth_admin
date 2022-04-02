@@ -11,11 +11,6 @@
           <b-btn class="mr-3" style="width: 150px" variant="warning" v-b-modal.profileEdit>Profile</b-btn>
         </b-col>
         <b-col md="1">
-          <b-btn class="mr-3" style="width: 150px" variant="success" @click="uploadAvatar()">
-            Upload Avatar
-          </b-btn>
-        </b-col>
-        <b-col md="1">
           <b-btn style="width: 150px" class="mr-3" variant="primary" v-b-modal.changePass>
             Change Password
           </b-btn>
@@ -33,11 +28,6 @@
       <change-pass/>
     </b-modal>
 
-    <upload-avatar
-      :show="isUploadAvatar"
-      @uploadAvatarSuccess="uploadAvatarSuccess"
-    />
-
   </div>
 </template>
 
@@ -54,7 +44,6 @@ import Service from "@/domain/services/api";
 import commonHelper from '@/infrastructures/common-helpers'
 import ProfileEdit from "@/views/components/student/ProfileEdit";
 import ChangePass from "@/views/components/student/ChangePassword";
-import UploadAvatar from "@/views/components/student/UploadAvatar";
 import WebViewer from "@/views/file/WebViewer";
 export default {
   data() {
@@ -69,7 +58,6 @@ export default {
   components: {
     WebViewer,
     ChangePass,
-    UploadAvatar,
     ProfileEdit
   },
   mounted() {
@@ -84,14 +72,6 @@ export default {
         localStorage.removeItem("infoUser");
         window.location.href = '/adm/login'
       })
-    },
-    uploadAvatar () {
-      this.isUploadAvatar = false
-      this.isUploadAvatar = true
-    },
-    uploadAvatarSuccess (urlImg) {
-      this.imgDataUrl = urlImg
-      commonHelper.showMessage('Upload avatar success', 'success')
     },
   },
   watch: {

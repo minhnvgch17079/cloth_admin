@@ -20,11 +20,6 @@
                 <img v-b-toggle.collapse-1 style="width: 50px; height: 50px; border-radius: 50%" :src="'/user/getAvatar'">
               </b-dropdown-item>
               <b-dropdown-item v-b-modal.profileEdit>Profile</b-dropdown-item>
-              <b-dropdown-item>
-                <b-btn variant="outline-success" @click="uploadAvatar()">
-                  Upload Avatar
-                </b-btn>
-              </b-dropdown-item>
               <b-dropdown-item v-b-modal.changePass>
                 Change Password
               </b-dropdown-item>
@@ -165,7 +160,6 @@ import Submission from "@/views/components/student/Submission";
 import Comment from "@/views/components/student/Comment"
 import WebViewer from "@/views/file/WebViewer";
 import Logo from "@/layouts/components/Logo";
-import UploadAvatar from "@/views/components/student/UploadAvatar";
 export default {
   data() {
     return {
@@ -208,7 +202,6 @@ export default {
     }
   },
   components: {
-    UploadAvatar,
     Logo,
     WebViewer,
     ChangePass,

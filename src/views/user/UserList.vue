@@ -76,12 +76,6 @@
         </b-pagination>
       </div>
     </b-row>
-
-    <b-modal id="AddFaculty" title="Add Faculty" size="md" :hide-footer="true" centered>
-      <faculty-select
-        :user-id="userIdAddFaculty"
-      />
-    </b-modal>
   </div>
 
 </template>
@@ -89,7 +83,6 @@
 <script>
 import '@/assets/scss/vuexy/extraComponents/agGridStyleOverride.scss'
 import Multiselect from 'vue-multiselect'
-import Service from "@/domain/services/api"
 import commonHelper from "@/infrastructures/common-helpers"
 import FacultySelect from "@/views/components/component/FacultySelect";
 import HeaderFptschool from "@/views/Header";
@@ -104,6 +97,7 @@ export default {
   },
   data() {
     return {
+      accessToken: null,
       perPage: 9,
       currentPage: 1,
       fieldsDataUsers: [
@@ -131,7 +125,6 @@ export default {
         { value: 4, text: 'Marketing Manager' },
         { value: 5, text: 'Guest' },
       ],
-      userIdAddFaculty: null,
       listGroup: [],
     }
   },
@@ -145,7 +138,9 @@ export default {
   },
   methods: {
     getListGroup () {
-      axios.get(`${BACKEND_BASE_URL}/user/list-group`)
+      axios.get(`${BACKEND_BASE_URL}/user/list-group`, {
+        headers: { Authorization: `Bearer ${this.accessToken}`}
+      })
       .then((res) => {
         this.listGroup = Object.values(res.data.data).map(e => {
           return {
@@ -159,13 +154,13 @@ export default {
         })
         return commonHelper.showMessage(SUCCESS_COMMON, 'success')
       })
-      .catch(() => {
+      .catch((error) => {
+        if (error.response.status === 401) {
+          commonHelper.showMessage('Vui Lòng Đăng Nhập', 'warning')
+          return window.location.href = '/adm/login'
+        }
         commonHelper.showMessage(ERROR_COMMON, 'warning')
       })
-    },
-    addFaculty (dataUser) {
-      this.userIdAddFaculty = dataUser.id
-      this.$bvModal.show('AddFaculty')
     },
     getUser () {
       let data = {
@@ -175,12 +170,19 @@ export default {
         group_id: this.roleSearch
       }
       this.dataUsers = []
-      axios.get(`${BACKEND_BASE_URL}/user/user-list`, {'params': data})
+      axios.get(`${BACKEND_BASE_URL}/user/user-list`, {
+        'params': data,
+        headers: { Authorization: `Bearer ${this.accessToken}`}
+      })
         .then(res => {
           this.dataUsers = res.data.data
           return commonHelper.showMessage(SUCCESS_COMMON, 'success')
         })
-        .catch(() => {
+        .catch((error) => {
+          if (error.response.status === 401) {
+            commonHelper.showMessage('Vui Lòng Đăng Nhập', 'warning')
+            return window.location.href = '/adm/login'
+          }
           commonHelper.showMessage(ERROR_COMMON, 'warning')
         })
     },
@@ -191,7 +193,10 @@ export default {
         modifyType,
         idUser
       }
-      axios.get(`${BACKEND_BASE_URL}/user/modify-user`, { params: param })
+      axios.get(`${BACKEND_BASE_URL}/user/modify-user`, {
+        params: param,
+        headers: { Authorization: `Bearer ${this.accessToken}`}
+      })
         .then(res => {
           if (res.data.data) {
             this.getUser()
@@ -199,7 +204,11 @@ export default {
           }
           commonHelper.showMessage(ERROR_COMMON, 'warning')
         })
-        .catch(() => {
+        .catch((error) => {
+          if (error.response.status === 401) {
+            commonHelper.showMessage('Vui Lòng Đăng Nhập', 'warning')
+            return window.location.href = '/adm/login'
+          }
           commonHelper.showMessage(ERROR_COMMON, 'warning')
         })
     }
@@ -207,6 +216,7 @@ export default {
   mounted() {
   },
   created() {
+    this.accessToken = localStorage.getItem('access_token');
     this.getUser()
     this.getListGroup()
   }

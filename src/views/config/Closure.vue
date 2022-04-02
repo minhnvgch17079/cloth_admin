@@ -1,78 +1,85 @@
 <template>
-  <div class="mt-3 container-fluid">
+
+  <div id="page-user-list">
     <header-fptschool></header-fptschool>
-    <b-row>
+    <b-row class="ml-3">
       <b-col>
-        <b-input :placeholder="`Closure name`" v-model="closureNameSearch"></b-input>
+        <b-form-select v-model="roleSearch" :options="listGroup"></b-form-select>
       </b-col>
       <b-col>
-        <b-input type="date" :placeholder="`Start date (option)`" v-model="startDateSearch"></b-input>
+        <b-input :placeholder="`Email`" type="email" v-model="emailSearch"></b-input>
       </b-col>
       <b-col>
-        <b-input type="date" :placeholder="`End date (option)`" v-model="endDateSearch"></b-input>
+        <b-input :placeholder="`Full name`" v-model="fullNameSearch"></b-input>
       </b-col>
       <b-col>
-        <b-btn class="mr-3" variant="outline-info" @click="getClosureConfig()">Search</b-btn>
-        <b-btn variant="outline-success" v-b-modal.modal-1>Add Config</b-btn>
+        <b-input :placeholder="`Phone Number`" v-model="phoneNumberSearch"></b-input>
+      </b-col>
+      <b-col>
+        <b-btn class="mr-3" variant="outline-info" @click="getUser()">Search</b-btn>
       </b-col>
     </b-row>
-    <b-modal centered id="modal-1" title="Add New Config" @ok="addConfig()">
-      <b-row>
-        <b-input class="ml-3 mr-3 mb-3" v-model="closureNameAdd" :placeholder="`Closure name`"></b-input>
-      </b-row>
-      <b-row>
-        <b-input type="date" class="ml-3 mr-3 mb-3" v-model="startDateAdd" :placeholder="`Start date`"></b-input>
-      </b-row>
-    </b-modal>
     <br>
     <br>
-    <div class="d-block">
-      <b-form-input
-        class="mb-5"
-        id="filter-input"
-        v-model="filter"
-        type="search"
-        placeholder="Type to Search"
-      ></b-form-input>
-    </div>
-    <b-table
-      :filter="filter"
-      responsive
-      hover
-      striped
-      :fields="fieldsData"
-      :items="data"
-      :per-page="perPage"
-      :current-page="currentPage"
-    >
-      <template v-slot:cell(manage)="row">
-        <b-btn class="mr-3" variant="outline-warning" @click="editClosure(row.item)">
-          <feather-icon icon="Edit3Icon" svgClasses="h-4 w-4"/>
-        </b-btn>
-        <b-btn variant="outline-danger" @click="deleteClosureConfigs(row.item.id)">
-          <feather-icon icon="TrashIcon" svgClasses="h-4 w-4"/>
-        </b-btn>
-      </template>
-    </b-table>
-    <br>
-    <div class="d-flex justify-content-center w-100">
-      <b-pagination
-        align="center"
-        v-model="currentPage"
-        :total-rows="rows"
+    <b-row class="ml-3">
+      <b-col>
+        <div class="w-50">
+          <b-form-input
+            class="mb-5"
+            id="filter-input"
+            v-model="filter"
+            type="search"
+            placeholder="Type to Search"
+          ></b-form-input>
+        </div>
+      </b-col>
+    </b-row>
+    <b-row class="ml-3">
+      <b-table
+        :filter="filter"
+        class="ml-5 mr-5"
+        hover
+        responsive
+        striped
+        :fields="fieldsDataUsers"
+        :items="dataUsers"
         :per-page="perPage"
-        aria-controls="my-table"
+        :current-page="currentPage"
       >
-        <template #first-text><span class="text-success">First</span></template>
-        <template #prev-text><span class="text-danger">Prev</span></template>
-        <template #next-text><span class="text-warning">Next</span></template>
-        <template #last-text><span class="text-info">Last</span></template>
-      </b-pagination>
-    </div>
+        <template v-slot:cell(manage)="row">
+          <b-btn class="mr-3" variant="outline-success" @click="modifyUser('1', row.item.id)">
+            <feather-icon icon="UnlockIcon" svgClasses="h-4 w-4"/>
+          </b-btn>
+          <b-btn class="mr-3" variant="outline-warning" @click="modifyUser('2', row.item.id)">
+            <feather-icon icon="LockIcon" svgClasses="h-4 w-4"/>
+          </b-btn>
+          <b-btn variant="outline-danger" @click="modifyUser('3', row.item.id)">
+            <feather-icon icon="TrashIcon" svgClasses="h-4 w-4"/>
+          </b-btn>
+        </template>
+      </b-table>
+    </b-row>
+    <br>
+    <b-row>
+      <div class="d-flex justify-content-center w-100">
+        <b-pagination
+          align="center"
+          v-model="currentPage"
+          :total-rows="rows"
+          :per-page="perPage"
+          aria-controls="my-table"
+        >
+          <template #first-text><span class="text-success">First</span></template>
+          <template #prev-text><span class="text-danger">Prev</span></template>
+          <template #next-text><span class="text-warning">Next</span></template>
+          <template #last-text><span class="text-info">Last</span></template>
+        </b-pagination>
+      </div>
+    </b-row>
 
-    <b-modal centered id="editClosure" title="Edit closure config" size="md" :hide-footer="true">
-      <closure-config
-        :configs="dataClosureUpdate"
+    <b-modal id="AddFaculty" title="Add Faculty" size="md" :hide-footer="true" centered>
+      <faculty-select
+        :user-id="userIdAddFaculty"
       />
     </b-modal>
   </div>
@@ -81,106 +88,126 @@
 
 <script>
 import '@/assets/scss/vuexy/extraComponents/agGridStyleOverride.scss'
-import Service from "@/domain/services/api"
-import commonHelper from '@/infrastructures/common-helpers'
-import ClosureConfig from '@/views/config/EditClosure'
+import Multiselect from 'vue-multiselect'
+import commonHelper from "@/infrastructures/common-helpers"
+import FacultySelect from "@/views/components/component/FacultySelect";
 import HeaderFptschool from "@/views/Header";
+import {BACKEND_BASE_URL, ERROR_COMMON, SUCCESS_COMMON} from "../../configs/environment";
+const axios = require('axios').default;
 
 export default {
   components: {
     HeaderFptschool,
-    ClosureConfig
+    Multiselect,
+    FacultySelect
   },
   data() {
     return {
       perPage: 9,
       currentPage: 1,
-      fieldsData: [
+      fieldsDataUsers: [
         {key: 'id', label: 'Id', sortable: true},
-        {key: 'name', label: 'Closure Name', sortable: true},
-        {key: 'first_closure_DATE', label: 'First closure date', sortable: true},
-        {key: 'final_closure_DATE', label: 'Final closure date', sortable: true},
-        {key: 'created', label: 'Created', sortable: true},
-        {key: 'created_by', label: 'Create by', sortable: true},
-        {key: 'modified', label: 'Modified', sortable: true},
-        {key: 'modified_by', label: 'Modified by', sortable: true},
+        {key: 'email', label: 'Email', sortable: true},
+        {key: 'role', label: 'Chức Năng', sortable: true},
+        {key: 'full_name', label: 'Họ Tên', sortable: true},
+        {key: 'address', label: 'Địa Chỉ', sortable: true},
+        {key: 'status', label: 'Trạng Thái', sortable: true},
         {key: 'manage', label: 'Manage'}
       ],
-      data: [],
+      dataUsers: [],
       filter: null,
 
-      closureNameSearch: '',
-      startDateSearch: '',
-      endDateSearch: '',
+      roleSearch: null,
+      fullNameSearch: '',
+      phoneNumberSearch: '',
+      emailSearch: '',
 
-      closureNameAdd: '',
-      startDateAdd: '',
-
-      dataClosureUpdate: []
+      optionsRole: [
+        { value: null, text: 'Please select role' },
+        { value: 1, text: 'Admin' },
+        { value: 2, text: 'Marketing Coordinator' },
+        { value: 3, text: 'Student' },
+        { value: 4, text: 'Marketing Manager' },
+        { value: 5, text: 'Guest' },
+      ],
+      userIdAddFaculty: null,
+      listGroup: [],
     }
   },
   watch: {
   },
   computed: {
     rows() {
-      return this.data.length
+      return this.dataUsers.length
     }
 
   },
   methods: {
-    getClosureConfig () {
-      this.data = []
-      Service.getClosure().then(res => {
-        if (res.data.success) {
-          this.data = res.data.data
-          return commonHelper.showMessage(res.data.message, 'success');
-        }
-        commonHelper.showMessage(res.data.message, 'warning');
-      }).catch(() => {
-        commonHelper.showMessage('There something error. Please try again')
-      })
+    getListGroup () {
+      axios.get(`${BACKEND_BASE_URL}/user/list-group`)
+        .then((res) => {
+          this.listGroup = Object.values(res.data.data).map(e => {
+            return {
+              value: e,
+              text: e
+            }
+          })
+          this.listGroup.push({
+            value: null,
+            text: 'Select role...'
+          })
+          return commonHelper.showMessage(SUCCESS_COMMON, 'success')
+        })
+        .catch(() => {
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
     },
-
-    deleteClosureConfigs (idDelete) {
-      if (!confirm('Are you sure to delete this closure config?')) return 1
-      Service.deleteClosureConfigs({'id': idDelete}).then(res => {
-        if (res.data.success) {
-          this.getClosureConfig()
-          return commonHelper.showMessage(res.data.message, 'success')
-        }
-        commonHelper.showMessage(res.data.message, 'warning');
-      }).catch(() => {
-        commonHelper.showMessage('There something error. Please try again')
-      })
+    addFaculty (dataUser) {
+      this.userIdAddFaculty = dataUser.id
+      this.$bvModal.show('AddFaculty')
     },
-
-    addConfig () {
-      let dataSend = {
-        'name': this.closureNameAdd,
-        'first_date': this.startDateAdd
+    getUser () {
+      let data = {
+        full_name: this.fullNameSearch,
+        phone_number: this.phoneNumberSearch,
+        email: this.emailSearch,
+        group_id: this.roleSearch
       }
-
-      Service.createClosure(dataSend).then(res => {
-        if (res.data.success) {
-          this.getClosureConfig()
-          return commonHelper.showMessage(res.data.message, 'success')
-        }
-        commonHelper.showMessage(res.data.message, 'warning')
-      }).catch(() => {
-        commonHelper.showMessage('There something error. Please try again', 'warning')
-      })
+      this.dataUsers = []
+      axios.get(`${BACKEND_BASE_URL}/user/user-list`, {'params': data})
+        .then(res => {
+          this.dataUsers = res.data.data
+          return commonHelper.showMessage(SUCCESS_COMMON, 'success')
+        })
+        .catch(() => {
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
     },
 
-    editClosure (data) {
-      console.log(data)
-      this.dataClosureUpdate = data
-      this.$bvModal.show('editClosure')
+    modifyUser (modifyType, idUser) {
+      if (!confirm('Bạn có chắc chắn thực hiện hành động này?')) return 1
+      let param = {
+        modifyType,
+        idUser
+      }
+      axios.get(`${BACKEND_BASE_URL}/user/modify-user`, { params: param })
+        .then(res => {
+          if (res.data.data) {
+            this.getUser()
+            return commonHelper.showMessage('Thao tác thành công', 'success')
+          }
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
+        .catch(() => {
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
     }
   },
   mounted() {
   },
   created() {
-    this.getClosureConfig()
+    this.getUser()
+    this.getListGroup()
   }
 }
 

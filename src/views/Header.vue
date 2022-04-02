@@ -14,11 +14,15 @@
             </b-nav-item>
 
             <b-nav-item>
-              <router-link to="/config/closures">Manage Closure</router-link>
+              <router-link to="/config/closures">Quản Lý Event</router-link>
             </b-nav-item>
 
             <b-nav-item>
-              <router-link to="/config/faculties">Manage Faculty</router-link>
+              <router-link to="/config/child-event">Quản Lý Child Event</router-link>
+            </b-nav-item>
+
+            <b-nav-item>
+              <router-link to="/config/faculties">Quản Lý Order</router-link>
             </b-nav-item>
 
             <b-nav-item>
@@ -44,11 +48,6 @@
                 <img v-b-toggle.collapse-1 style="width: 50px; height: 50px; border-radius: 50%" :src="'/user/getAvatar'">
               </b-dropdown-item>
               <b-dropdown-item v-b-modal.profileEdit>Profile</b-dropdown-item>
-              <b-dropdown-item>
-                <b-btn variant="outline-success" @click="uploadAvatar()">
-                  Upload Avatar
-                </b-btn>
-              </b-dropdown-item>
               <b-dropdown-item v-b-modal.changePass>
                 Change Password
               </b-dropdown-item>
@@ -68,31 +67,21 @@
     <b-modal id="changePass" title="Change pass" size="md" :hide-footer="true">
       <change-pass/>
     </b-modal>
-
-    <upload-avatar
-      :show="isUploadAvatar"
-      @uploadAvatarSuccess="uploadAvatarSuccess"
-    />
   </div>
 </template>
 
 <script>
-import Service from '@/domain/services/api'
 import commonHelper from '@/infrastructures/common-helpers'
 import Logo from "@/layouts/components/Logo";
 import ProfileEdit from "@/views/components/student/ProfileEdit";
 import ChangePass from "@/views/components/student/ChangePassword";
-import UploadAvatar from "@/views/components/student/UploadAvatar";
 
 export default {
   name: 'header-fptschool',
   data() {
-    return {
-      isUploadAvatar: false,
-    }
+    return {}
   },
   components: {
-    UploadAvatar,
     ChangePass,
     ProfileEdit,
     Logo
@@ -102,20 +91,10 @@ export default {
   },
   methods: {
     logout() {
-      Service.logout().then(() => {
-        commonHelper.showMessage('Logout Success', 'success')
-        localStorage.removeItem("infoUser");
-        window.location.href = '/adm/login'
-      })
+      localStorage.removeItem('access_token');
+      commonHelper.showMessage('Đăng Xuất Thành Công', 'success')
+      window.location.href = '/adm/login'
     },
-    uploadAvatar () {
-      this.isUploadAvatar = false
-      this.isUploadAvatar = true
-    },
-    uploadAvatarSuccess (urlImg) {
-      this.imgDataUrl = urlImg
-      commonHelper.showMessage('Upload avatar success', 'success')
-    }
   }
 }
 </script>

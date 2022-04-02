@@ -76,6 +76,14 @@ const router = new Router({
           }
         },
         {
+          path: '/config/child-event',
+          name: 'dashboard-analytics',
+          component: () => import('./views/config/ChildEvent.vue'),
+          meta: {
+            rule: 'editor',
+          }
+        },
+        {
           path: '/user/user-list',
           name: 'app-user-list',
           component: () => import('@/views/user/UserList.vue'),
