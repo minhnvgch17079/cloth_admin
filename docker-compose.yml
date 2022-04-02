@@ -1,0 +1,18 @@
+version: '3.1'
+
+services:
+  admin_cloth_frontend:
+    build:
+      context: ""
+      dockerfile: ./Dockerfile
+    working_dir: /home/node/app
+    volumes:
+      - ./:/home/node/app
+    command: >
+      bash -c "npm install && npm run serve"
+    tty: true
+    restart: always
+    container_name: admin_cloth_frontend
+    user: node
+    ports:
+      - 3005:8080
