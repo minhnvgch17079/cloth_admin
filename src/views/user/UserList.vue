@@ -47,7 +47,13 @@
         :current-page="currentPage"
       >
         <template v-slot:cell(manage)="row">
-          <b-btn variant="outline-danger" @click="disabledAccount(row.item.id)">
+          <b-btn class="mr-3" variant="outline-success" @click="modifyUser('1', row.item.id)">
+            <feather-icon icon="UnlockIcon" svgClasses="h-4 w-4"/>
+          </b-btn>
+          <b-btn class="mr-3" variant="outline-warning" @click="modifyUser('2', row.item.id)">
+            <feather-icon icon="LockIcon" svgClasses="h-4 w-4"/>
+          </b-btn>
+          <b-btn variant="outline-danger" @click="modifyUser('3', row.item.id)">
             <feather-icon icon="TrashIcon" svgClasses="h-4 w-4"/>
           </b-btn>
         </template>
@@ -179,18 +185,23 @@ export default {
         })
     },
 
-    disabledAccount (idAccount) {
-      if (!confirm('Are you sure want to block this account?')) return 1
-
-      Service.disabledAccount({'id': idAccount}).then(res => {
-        if (res.data.success) {
-          this.getUser()
-          return commonHelper.showMessage(res.data.message, 'success')
-        }
-        commonHelper.showMessage(res.data.message, 'warning')
-      }).catch(() => {
-        commonHelper.showMessage('There something error. Please try again', 'warning')
-      })
+    modifyUser (modifyType, idUser) {
+      if (!confirm('Bạn có chắc chắn thực hiện hành động này?')) return 1
+      let param = {
+        modifyType,
+        idUser
+      }
+      axios.get(`${BACKEND_BASE_URL}/user/modify-user`, { params: param })
+        .then(res => {
+          if (res.data.data) {
+            this.getUser()
+            return commonHelper.showMessage('Thao tác thành công', 'success')
+          }
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
+        .catch(() => {
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
     }
   },
   mounted() {
