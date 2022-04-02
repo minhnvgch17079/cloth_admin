@@ -2,7 +2,7 @@
 
   <div id="page-user-list">
     <header-fptschool></header-fptschool>
-    <b-row>
+    <b-row class="ml-3">
       <b-col>
         <b-form-select v-model="roleSearch" :options="listGroup"></b-form-select>
       </b-col>
@@ -21,7 +21,7 @@
     </b-row>
     <br>
     <br>
-    <b-row>
+    <b-row class="ml-3">
       <b-col>
         <div class="w-50">
           <b-form-input
@@ -34,7 +34,7 @@
         </div>
       </b-col>
     </b-row>
-    <b-row>
+    <b-row class="ml-3">
       <b-table
         :filter="filter"
         class="ml-5 mr-5"
