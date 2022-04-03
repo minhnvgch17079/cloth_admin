@@ -4,16 +4,16 @@
     <header-fptschool></header-fptschool>
     <b-row class="ml-3">
       <b-col>
-        <b-input :placeholder="`Email`" type="email" v-model="emailSearch"></b-input>
+        <b-input :placeholder="`Tên`" type="email" v-model="childEventNameSearch"></b-input>
       </b-col>
       <b-col>
-        <b-input :placeholder="`Full name`" v-model="fullNameSearch"></b-input>
+        <b-input :placeholder="`Tiêu Đề`" v-model="childEventTitleSearch"></b-input>
       </b-col>
       <b-col>
-        <b-input :placeholder="`Phone Number`" v-model="phoneNumberSearch"></b-input>
+        <b-input :placeholder="`Nội Dung`" v-model="childEventContentSearch"></b-input>
       </b-col>
       <b-col>
-        <b-btn class="mr-3" variant="outline-info" @click="getListChildEvent()">Search</b-btn>
+        <b-btn class="mr-3" variant="outline-info" @click="getListChildEvent()">Tìm Kiếm</b-btn>
       </b-col>
     </b-row>
     <b-row class="ml-3 mt-3">
@@ -65,7 +65,7 @@
           <img class="w-25" :src="getImg(row.item.img)" alt="">
         </template>
         <template v-slot:cell(manage)="row">
-          <b-btn class="mr-3" variant="outline-warning" @click="modifyUser('2', row.item.id)">
+          <b-btn class="mr-3" variant="outline-warning" @click="editChildEvent(row.item)">
             <feather-icon icon="EditIcon" svgClasses="h-4 w-4"/>
           </b-btn>
           <b-btn variant="outline-danger" @click="deleteEvent(row.item.id)">
@@ -91,6 +91,9 @@
         </b-pagination>
       </div>
     </b-row>
+    <b-modal id="childEventEdit" title="Chỉnh Sửa Child Event" size="md" :hide-footer="true">
+      <EditChildEvent @updateSuccess="updateSuccess" :childEvent="this.childEdit" :accessToken="this.accessToken"/>
+    </b-modal>
   </div>
 
 </template>
@@ -102,6 +105,7 @@ import commonHelper from "@/infrastructures/common-helpers"
 import FacultySelect from "@/views/components/component/FacultySelect";
 import HeaderFptschool from "@/views/Header";
 import {BACKEND_BASE_URL, ERROR_COMMON, SUCCESS_COMMON} from "../../configs/environment";
+import EditChildEvent from "@/views/components/student/EditChildEvent";
 
 const axios = require('axios').default;
 
@@ -109,10 +113,15 @@ export default {
   components: {
     HeaderFptschool,
     Multiselect,
-    FacultySelect
+    FacultySelect,
+    EditChildEvent
   },
   data() {
     return {
+      childEdit: null,
+      childEventNameSearch: null,
+      childEventTitleSearch: null,
+      childEventContentSearch: null,
       childEventName: null,
       childEventTitle: null,
       childEventContent: null,
@@ -155,6 +164,14 @@ export default {
 
   },
   methods: {
+    updateSuccess() {
+      this.$bvModal.hide('childEventEdit')
+      this.getListChildEvent();
+    },
+    editChildEvent(item) {
+      this.childEdit = item;
+      this.$bvModal.show('childEventEdit')
+    },
     createChildEvent() {
       let formData = new FormData(); // Currently empty
       formData.append('file', this.childImg);
@@ -216,8 +233,14 @@ export default {
       return `${BACKEND_BASE_URL}/event/get-image?image_path=${imgPath}`;
     },
     getListChildEvent () {
+      let param = {
+        name: this.childEventNameSearch,
+        title: this.childEventTitleSearch,
+        content: this.childEventContentSearch,
+      }
       axios.get(`${BACKEND_BASE_URL}/event/child`, {
-        headers: { Authorization: `Bearer ${this.accessToken}`}
+        headers: { Authorization: `Bearer ${this.accessToken}`},
+        params: param
       })
         .then((res) => {
           if (res.data.data) {

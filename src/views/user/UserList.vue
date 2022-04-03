@@ -16,7 +16,7 @@
         <b-input :placeholder="`Phone Number`" v-model="phoneNumberSearch"></b-input>
       </b-col>
       <b-col>
-        <b-btn class="mr-3" variant="outline-info" @click="getUser()">Search</b-btn>
+        <b-btn class="mr-3" variant="outline-info" @click="getUser()">Tìm Kiếm</b-btn>
       </b-col>
     </b-row>
     <br>
