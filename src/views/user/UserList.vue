@@ -159,6 +159,9 @@ export default {
           commonHelper.showMessage('Vui Lòng Đăng Nhập', 'warning')
           return window.location.href = '/adm/login'
         }
+        if (error.response.status === 406) {
+          return commonHelper.showMessage('Tài Khoản Không Có Quyền', 'warning')
+        }
         commonHelper.showMessage(ERROR_COMMON, 'warning')
       })
     },
@@ -182,6 +185,9 @@ export default {
           if (error.response.status === 401) {
             commonHelper.showMessage('Vui Lòng Đăng Nhập', 'warning')
             return window.location.href = '/adm/login'
+          }
+          if (error.response.status === 406) {
+            return commonHelper.showMessage('Tài Khoản Không Có Quyền', 'warning')
           }
           commonHelper.showMessage(ERROR_COMMON, 'warning')
         })
@@ -208,6 +214,9 @@ export default {
           if (error.response.status === 401) {
             commonHelper.showMessage('Vui Lòng Đăng Nhập', 'warning')
             return window.location.href = '/adm/login'
+          }
+          if (error.response.status === 406) {
+            return commonHelper.showMessage('Tài Khoản Không Có Quyền', 'warning')
           }
           commonHelper.showMessage(ERROR_COMMON, 'warning')
         })

@@ -4,9 +4,6 @@
     <header-fptschool></header-fptschool>
     <b-row class="ml-3">
       <b-col>
-        <b-form-select v-model="roleSearch" :options="listGroup"></b-form-select>
-      </b-col>
-      <b-col>
         <b-input :placeholder="`Email`" type="email" v-model="emailSearch"></b-input>
       </b-col>
       <b-col>
@@ -17,6 +14,24 @@
       </b-col>
       <b-col>
         <b-btn class="mr-3" variant="outline-info" @click="getListChildEvent()">Search</b-btn>
+      </b-col>
+    </b-row>
+    <b-row class="ml-3 mt-3">
+      <b-col>
+        <b-input v-model="childEventName" :placeholder="`Tên Gợi Nhớ`"></b-input>
+      </b-col>
+      <b-col>
+        <b-input v-model="childEventTitle" :placeholder="`Tiêu Đề`"></b-input>
+      </b-col>
+      <b-col>
+        <b-input v-model="childEventContent" :placeholder="`Nội Dung`"></b-input>
+      </b-col>
+      <b-col>
+        <b-form-file class="mb-3" :accept="`image/*`" v-model="childImg" @change="loadFile(childImg)"></b-form-file>
+        <img class="w-100" id="output"/>
+      </b-col>
+      <b-col>
+        <b-btn variant="outline-success" @click="createChildEvent">Tạo Child Event</b-btn>
       </b-col>
     </b-row>
     <br>
@@ -46,14 +61,14 @@
         :per-page="perPage"
         :current-page="currentPage"
       >
+        <template v-slot:cell(img)="row">
+          <img class="w-25" :src="getImg(row.item.img)" alt="">
+        </template>
         <template v-slot:cell(manage)="row">
-          <b-btn class="mr-3" variant="outline-success" @click="modifyUser('1', row.item.id)">
-            <feather-icon icon="UnlockIcon" svgClasses="h-4 w-4"/>
-          </b-btn>
           <b-btn class="mr-3" variant="outline-warning" @click="modifyUser('2', row.item.id)">
-            <feather-icon icon="LockIcon" svgClasses="h-4 w-4"/>
+            <feather-icon icon="EditIcon" svgClasses="h-4 w-4"/>
           </b-btn>
-          <b-btn variant="outline-danger" @click="modifyUser('3', row.item.id)">
+          <b-btn variant="outline-danger" @click="deleteEvent(row.item.id)">
             <feather-icon icon="TrashIcon" svgClasses="h-4 w-4"/>
           </b-btn>
         </template>
@@ -76,12 +91,6 @@
         </b-pagination>
       </div>
     </b-row>
-
-    <b-modal id="AddFaculty" title="Add Faculty" size="md" :hide-footer="true" centered>
-      <faculty-select
-        :user-id="userIdAddFaculty"
-      />
-    </b-modal>
   </div>
 
 </template>
@@ -93,6 +102,7 @@ import commonHelper from "@/infrastructures/common-helpers"
 import FacultySelect from "@/views/components/component/FacultySelect";
 import HeaderFptschool from "@/views/Header";
 import {BACKEND_BASE_URL, ERROR_COMMON, SUCCESS_COMMON} from "../../configs/environment";
+
 const axios = require('axios').default;
 
 export default {
@@ -103,16 +113,20 @@ export default {
   },
   data() {
     return {
+      childEventName: null,
+      childEventTitle: null,
+      childEventContent: null,
+      childImg: null,
+      accessToken: null,
       perPage: 9,
       currentPage: 1,
       fieldsDataChildEvents: [
         {key: 'id', label: 'Id', sortable: true},
-        {key: 'email', label: 'Email', sortable: true},
-        {key: 'role', label: 'Chức Năng', sortable: true},
-        {key: 'full_name', label: 'Họ Tên', sortable: true},
-        {key: 'address', label: 'Địa Chỉ', sortable: true},
-        {key: 'status', label: 'Trạng Thái', sortable: true},
-        {key: 'manage', label: 'Manage'}
+        {key: 'name', label: 'Tên', sortable: true},
+        {key: 'title', label: 'Tiêu Đề', sortable: true},
+        {key: 'content', label: 'Nội Dung', sortable: true},
+        {key: 'img', label: 'Ảnh', sortable: true},
+        {key: 'manage', label: 'Quản Lý ', sortable: true},
       ],
       dataChildEvents: [],
       filter: null,
@@ -130,8 +144,6 @@ export default {
         { value: 4, text: 'Marketing Manager' },
         { value: 5, text: 'Guest' },
       ],
-      userIdAddFaculty: null,
-      listGroup: [],
     }
   },
   watch: {
@@ -143,71 +155,94 @@ export default {
 
   },
   methods: {
-    getListGroup () {
-      axios.get(`${BACKEND_BASE_URL}/event/child`, {
-        headers: { Authorization: `Bear eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1pbmhudmdjaEBnbWFpbC5jb20iLCJzdWIiOjYsImlhdCI6MTY0ODkxMTM1NSwiZXhwIjoxNjQ4OTk3NzU1fQ.mawYEf2JWQb1SuvFdhtWQY0EvJoD-XSzMt5yIExnkGQ`}
+    createChildEvent() {
+      let formData = new FormData(); // Currently empty
+      formData.append('file', this.childImg);
+      formData.append('name', this.childEventName);
+      formData.append('title', this.childEventTitle);
+      formData.append('content', this.childEventContent);
+      axios.post(`${BACKEND_BASE_URL}/event/child`, formData, {
+        headers: { Authorization: `Bearer ${this.accessToken}`}
       })
-        .then((res) => {
-          console.log(res)
-          this.listGroup = Object.values(res.data.data).map(e => {
-            return {
-              value: e,
-              text: e
-            }
-          })
-          this.listGroup.push({
-            value: null,
-            text: 'Select role...'
-          })
-          return commonHelper.showMessage(SUCCESS_COMMON, 'success')
-        })
-        .catch(() => {
-          commonHelper.showMessage(ERROR_COMMON, 'warning')
-        })
-    },
-    addFaculty (dataUser) {
-      this.userIdAddFaculty = dataUser.id
-      this.$bvModal.show('AddFaculty')
-    },
-    getListChildEvent () {
-      this.dataChildEvents = []
-      axios.get(`${BACKEND_BASE_URL}/event/child`, {
-        headers: { Authorization: `Bear eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1pbmhudmdjaEBnbWFpbC5jb20iLCJzdWIiOjYsImlhdCI6MTY0ODkxMTM1NSwiZXhwIjoxNjQ4OTk3NzU1fQ.mawYEf2JWQb1SuvFdhtWQY0EvJoD-XSzMt5yIExnkGQ`}
+      .then(res => {
+        if (res.data.data) {
+          this.getListChildEvent();
+          return commonHelper.showMessage('Tạo Child Event Thành Công', 'success')
+        }
       })
-        .then(res => {
-          console.log(res);
-          this.dataChildEvents = res.data.data
-          return commonHelper.showMessage(SUCCESS_COMMON, 'success')
-        })
-        .catch(() => {
-          commonHelper.showMessage(ERROR_COMMON, 'warning')
-        })
+      .catch(error => {
+        if (error.response.status === 401) {
+          commonHelper.showMessage('Vui Lòng Đăng Nhập', 'warning')
+          return window.location.href = '/adm/login'
+        }
+        if (error.response.status === 406) {
+          return commonHelper.showMessage('Tài Khoản Không Có Quyền', 'warning')
+        }
+        commonHelper.showMessage(ERROR_COMMON, 'warning')
+      })
     },
-
-    modifyUser (modifyType, idUser) {
+    deleteEvent(eventId) {
       if (!confirm('Bạn có chắc chắn thực hiện hành động này?')) return 1
-      let param = {
-        modifyType,
-        idUser
-      }
-      axios.get(`${BACKEND_BASE_URL}/user/modify-user`, { params: param })
+      axios.get(`${BACKEND_BASE_URL}/event/deleteChildEvent?eventId=${eventId}`, {
+        headers: { Authorization: `Bearer ${this.accessToken}`}
+      })
         .then(res => {
           if (res.data.data) {
-            this.getListChildEvent()
-            return commonHelper.showMessage('Thao tác thành công', 'success')
+            this.getListChildEvent();
+            return commonHelper.showMessage('Xóa Event Thành Công', 'success')
+          }
+        })
+        .catch(error => {
+          if (error.response.status === 401) {
+            commonHelper.showMessage('Vui Lòng Đăng Nhập', 'warning')
+            return window.location.href = '/adm/login'
+          }
+          if (error.response.status === 406) {
+            return commonHelper.showMessage('Tài Khoản Không Có Quyền', 'warning')
           }
           commonHelper.showMessage(ERROR_COMMON, 'warning')
         })
-        .catch(() => {
+    },
+    loadFile () {
+      setTimeout(() => {
+        const output = document.getElementById('output');
+        output.src = URL.createObjectURL(this.childImg);
+        output.onload = function() {
+          URL.revokeObjectURL(output.src) // free memory
+        }
+      }, 200)
+    },
+    getImg (imgPath) {
+      return `${BACKEND_BASE_URL}/event/get-image?image_path=${imgPath}`;
+    },
+    getListChildEvent () {
+      axios.get(`${BACKEND_BASE_URL}/event/child`, {
+        headers: { Authorization: `Bearer ${this.accessToken}`}
+      })
+        .then((res) => {
+          if (res.data.data) {
+            this.dataChildEvents = res.data.data;
+            return commonHelper.showMessage(SUCCESS_COMMON, 'success')
+          }
           commonHelper.showMessage(ERROR_COMMON, 'warning')
         })
-    }
+        .catch((error) => {
+          if (error.response.status === 401) {
+            commonHelper.showMessage('Vui Lòng Đăng Nhập', 'warning')
+            return window.location.href = '/adm/login'
+          }
+          if (error.response.status === 406) {
+            return commonHelper.showMessage('Tài Khoản Không Có Quyền', 'warning')
+          }
+          commonHelper.showMessage(ERROR_COMMON, 'warning')
+        })
+    },
   },
   mounted() {
   },
   created() {
+    this.accessToken = localStorage.getItem('access_token');
     this.getListChildEvent()
-    this.getListGroup()
   }
 }
 
